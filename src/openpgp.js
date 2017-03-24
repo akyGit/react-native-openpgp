@@ -108,6 +108,7 @@ export function destroyWorker() {
 //                  //
 //////////////////////
 
+export { key as key };
 
 /**
  * Reads an armored key
@@ -188,6 +189,7 @@ export function decryptKey({ privateKey, passphrase }) {
 //                                       //
 ///////////////////////////////////////////
 
+export { messageLib as message };
 
 /**
  * Read Message

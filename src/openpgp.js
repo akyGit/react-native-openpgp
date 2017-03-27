@@ -39,7 +39,13 @@ import config from './config/config.js';
 import util from './util';
 import AsyncProxy from './worker/async_proxy.js';
 import random from './crypto/random.js';
+import crypto from './crypto/crypto.js';
+import enums from './enums.js';
 
+export { config as config };
+export { util as util };
+export { crypto as crypto };
+export { enums as enums };
 
 //////////////////////////////////
 //                              //

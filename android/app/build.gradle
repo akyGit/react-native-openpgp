@@ -13,5 +13,7 @@ android {
 }
 
 dependencies {
-    compile 'com.facebook.react:react-native:0.13.+'
+    compile 'com.facebook.react:react-native:0.15.+'
+    compile 'org.bouncycastle:bcprov-jdk15on:1.47'
+    compile 'org.bouncycastle:bcpg-jdk15on:1.47'
 }

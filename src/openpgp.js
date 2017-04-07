@@ -41,6 +41,7 @@ import AsyncProxy from './worker/async_proxy.js';
 import random from './crypto/random.js';
 import crypto from './crypto/crypto.js';
 import enums from './enums.js';
+import generateKeyPair from './crypto/generateKeyPair.js';
 
 export { config as config };
 export { util as util };
@@ -115,6 +116,11 @@ export function destroyWorker() {
 //////////////////////
 
 export { key as key };
+
+/**
+ * Generation rsa key pair in native platform
+ */
+export { generateKeyPair as generateKeyPair };
 
 /**
  * Reads an armored key

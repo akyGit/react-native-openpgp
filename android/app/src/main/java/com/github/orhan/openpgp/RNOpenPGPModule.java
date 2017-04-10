@@ -14,37 +14,51 @@ import java.security.SecureRandom;
 import android.util.Base64;
 
 import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.Charset;
 import java.math.BigInteger;
 import java.security.SecureRandom;
+import java.security.Security;
+import java.security.Provider;
 import java.util.Date;
-import org.bouncycastle.bcpg.HashAlgorithmTags;
-import org.bouncycastle.bcpg.SymmetricKeyAlgorithmTags;
-import org.bouncycastle.bcpg.ArmoredOutputStream;
-import org.bouncycastle.bcpg.sig.Features;
-import org.bouncycastle.bcpg.sig.KeyFlags;
-import org.bouncycastle.crypto.generators.RSAKeyPairGenerator;
-import org.bouncycastle.crypto.params.RSAKeyGenerationParameters;
-import org.bouncycastle.openpgp.PGPEncryptedData;
-import org.bouncycastle.openpgp.PGPKeyPair;
-import org.bouncycastle.openpgp.PGPPublicKeyRing;
-import org.bouncycastle.openpgp.PGPKeyRingGenerator;
-import org.bouncycastle.openpgp.PGPPublicKey;
-import org.bouncycastle.openpgp.PGPSecretKeyRing;
-import org.bouncycastle.openpgp.PGPSignature;
-import org.bouncycastle.openpgp.PGPSignatureSubpacketGenerator;
-import org.bouncycastle.openpgp.operator.PBESecretKeyEncryptor;
-import org.bouncycastle.openpgp.operator.PGPDigestCalculator;
-import org.bouncycastle.openpgp.operator.bc.BcPBESecretKeyEncryptorBuilder;
-import org.bouncycastle.openpgp.operator.bc.BcPGPContentSignerBuilder;
-import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider;
-import org.bouncycastle.openpgp.operator.bc.BcPGPKeyPair;
-import org.bouncycastle.openpgp.PGPPrivateKey;
-import org.bouncycastle.openpgp.PGPPublicKey;
+import java.util.Iterator;
+import java.io.OutputStream;
+import org.spongycastle.jce.provider.BouncyCastleProvider;
+import org.spongycastle.bcpg.HashAlgorithmTags;
+import org.spongycastle.bcpg.SymmetricKeyAlgorithmTags;
+import org.spongycastle.bcpg.ArmoredOutputStream;
+import org.spongycastle.bcpg.ArmoredInputStream;
+import org.spongycastle.bcpg.sig.Features;
+import org.spongycastle.bcpg.sig.KeyFlags;
+import org.spongycastle.crypto.generators.RSAKeyPairGenerator;
+import org.spongycastle.crypto.params.RSAKeyGenerationParameters;
+import org.spongycastle.openpgp.PGPEncryptedData;
+import org.spongycastle.openpgp.PGPKeyPair;
+import org.spongycastle.openpgp.PGPPublicKeyRing;
+import org.spongycastle.openpgp.PGPPublicKeyRingCollection;
+import org.spongycastle.openpgp.PGPKeyRingGenerator;
+import org.spongycastle.openpgp.PGPPublicKey;
+import org.spongycastle.openpgp.PGPSecretKeyRing;
+import org.spongycastle.openpgp.PGPSignature;
+import org.spongycastle.openpgp.PGPSignatureSubpacketGenerator;
+import org.spongycastle.openpgp.operator.PBESecretKeyEncryptor;
+import org.spongycastle.openpgp.operator.PGPDigestCalculator;
+import org.spongycastle.openpgp.operator.bc.BcPBESecretKeyEncryptorBuilder;
+import org.spongycastle.openpgp.operator.bc.BcPGPContentSignerBuilder;
+import org.spongycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider;
+import org.spongycastle.openpgp.operator.bc.BcPGPKeyPair;
+import org.spongycastle.openpgp.PGPPrivateKey;
+import org.spongycastle.openpgp.PGPPublicKey;
+import org.spongycastle.openpgp.PGPCompressedDataGenerator;
+import org.spongycastle.openpgp.PGPEncryptedDataGenerator;
+import java.lang.System;
+import org.spongycastle.openpgp.PGPException;
 
 public class RNOpenPGPModule extends ReactContextBaseJavaModule {
 
   public RNOpenPGPModule(ReactApplicationContext reactContext) {
     super(reactContext);
+    Security.addProvider(new BouncyCastleProvider());
   }
 
   @Override
@@ -75,6 +89,9 @@ public class RNOpenPGPModule extends ReactContextBaseJavaModule {
         armoredPubOutputStream.close();
         resultMap.putString("publicKey", publicKeyOutputStream.toString("UTF-8"));
 
+        // String publicKeyString = publicKeyOutputStream.toString("UTF-8");
+        // encrypt("some plain text", publicKeyString);
+
         // private key
         PGPSecretKeyRing secretKeyRing               = keyGenerator.generateSecretKeyRing();
         ByteArrayOutputStream privateKeyOutputStream = new ByteArrayOutputStream();
@@ -86,11 +103,62 @@ public class RNOpenPGPModule extends ReactContextBaseJavaModule {
 
         promise.resolve(resultMap);
     } catch(Exception e) {
+        e.printStackTrace();
         promise.reject(e.getMessage());
     }
   }
 
-  public final static PGPKeyRingGenerator generateKeyRingGenerator(String userId, int numBits, char[] passphrase)
+
+//   public void encrypt(String data, String armoredPublicKey) throws Exception {
+//       // Provider[] prov = Security.getProviders();
+//       // for(int i = 0; i < prov.length; i++) {
+//       //   System.out.println(prov[i].getName());
+//       // }
+//       byte[] dataByteArray = data.getBytes(Charset.forName("UTF-8"));
+//       PGPPublicKey key = readArmoredPublicKey(armoredPublicKey);
+
+//       ByteArrayOutputStream compressedDataStream = new ByteArrayOutputStream();
+//       PGPCompressedDataGenerator compressedDataGenerator = new PGPCompressedDataGenerator(
+//         PGPCompressedDataGenerator.ZIP
+//       );
+
+//       OutputStream outStream = compressedDataGenerator.open(compressedDataStream);
+//       outStream.write(dataByteArray);
+//       compressedDataGenerator.close();
+//       outStream.close();
+
+//       PGPEncryptedDataGenerator encryptedDataGenerator = new PGPEncryptedDataGenerator(
+//         PGPEncryptedDataGenerator.AES_256,
+//         new SecureRandom(),
+//         "BC"
+//       );
+
+//       encryptedDataGenerator.addMethod(key);
+
+//       byte[] compressedData = compressedDataStream.toByteArray();
+//       ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+//       ArmoredOutputStream armoredOutputStream  = new ArmoredOutputStream(outputStream);
+// System.out.println("VM_006");
+//       OutputStream outDataStream = encryptedDataGenerator.open(armoredOutputStream, compressedData.length);
+// System.out.println("VM_007");
+//       outDataStream.write(compressedData);
+//       encryptedDataGenerator.close();
+//       armoredOutputStream.close();
+//       String result = outputStream.toString("UTF-8");
+//       System.out.println("FINDME_001");
+//       System.out.println(result);
+//   }
+
+  @ReactMethod
+  public void decrypt(String armoredEncryptedData, String armoredPrivateKey, Promise promise) {
+    try {
+      
+    } catch (Exception e) {
+      promise.reject(e.getMessage());
+    }
+  }
+
+  private final static PGPKeyRingGenerator generateKeyRingGenerator(String userId, int numBits, char[] passphrase)
       throws Exception
   {
     RSAKeyPairGenerator keyPairGenerator = new RSAKeyPairGenerator();
@@ -169,4 +237,28 @@ public class RNOpenPGPModule extends ReactContextBaseJavaModule {
 
     return keyRingGen;
   }
+
+//   private static PGPPublicKey readArmoredPublicKey(String in)
+//                      throws Exception {
+//               byte[] byteArrayPublicKeyString = in.getBytes(Charset.forName("UTF-8"));
+//               ByteArrayInputStream publicKeyInputStream = new ByteArrayInputStream(byteArrayPublicKeyString);
+//               ArmoredInputStream armoredPubInputStream = new ArmoredInputStream(publicKeyInputStream);
+
+//               PGPPublicKeyRing pkRing = null;
+//               PGPPublicKeyRingCollection pkCol = new PGPPublicKeyRingCollection(armoredPubInputStream);
+//               System.out.println("key ring size=" + pkCol.size());
+//               Iterator it = pkCol.getKeyRings();
+//               while (it.hasNext()) {
+//                       pkRing = (PGPPublicKeyRing) it.next();
+//                       Iterator pkIt = pkRing.getPublicKeys();
+//                       while (pkIt.hasNext()) {
+//                               PGPPublicKey key = (PGPPublicKey) pkIt.next();
+//                               System.out.println("Encryption key = " + key.isEncryptionKey() + ", Master key = " + 
+//                                                  key.isMasterKey());
+//                               if (key.isEncryptionKey())
+//                                       return key;
+//                       }
+//               }
+//               return null;
+//       }
 }

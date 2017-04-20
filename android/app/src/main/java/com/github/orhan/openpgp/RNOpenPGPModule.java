@@ -13,7 +13,6 @@ import java.security.SecureRandom;
 
 import android.util.Base64;
 
-import org.apache.commons.io.IOUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.Charset;
@@ -24,7 +23,6 @@ import java.security.Provider;
 import java.util.Date;
 import java.util.Iterator;
 import java.io.OutputStream;
-import java.io.InputStream;
 import org.spongycastle.jce.provider.BouncyCastleProvider;
 import org.spongycastle.bcpg.HashAlgorithmTags;
 import org.spongycastle.bcpg.SymmetricKeyAlgorithmTags;
@@ -38,11 +36,9 @@ import org.spongycastle.openpgp.PGPEncryptedData;
 import org.spongycastle.openpgp.PGPKeyPair;
 import org.spongycastle.openpgp.PGPPublicKeyRing;
 import org.spongycastle.openpgp.PGPPublicKeyRingCollection;
-// import org.spongycastle.openpgp.bc.BcPGPPublicKeyRingCollection;
 import org.spongycastle.openpgp.PGPKeyRingGenerator;
 import org.spongycastle.openpgp.PGPPublicKey;
 import org.spongycastle.openpgp.PGPSecretKeyRing;
-import org.spongycastle.openpgp.PGPSecretKey;
 import org.spongycastle.openpgp.PGPSignature;
 import org.spongycastle.openpgp.PGPSignatureSubpacketGenerator;
 import org.spongycastle.openpgp.operator.PBESecretKeyEncryptor;
@@ -54,25 +50,9 @@ import org.spongycastle.openpgp.operator.bc.BcPGPKeyPair;
 import org.spongycastle.openpgp.PGPPrivateKey;
 import org.spongycastle.openpgp.PGPPublicKey;
 import org.spongycastle.openpgp.PGPCompressedDataGenerator;
-import org.spongycastle.openpgp.PGPCompressedData;
 import org.spongycastle.openpgp.PGPEncryptedDataGenerator;
 import java.lang.System;
 import org.spongycastle.openpgp.PGPException;
-import org.spongycastle.openpgp.PGPUtil;
-import org.spongycastle.bcpg.CompressionAlgorithmTags;
-import org.spongycastle.openpgp.operator.jcajce.JcePGPDataEncryptorBuilder; 
-import org.spongycastle.openpgp.operator.jcajce.JcePublicKeyKeyEncryptionMethodGenerator;
-import org.spongycastle.crypto.util.PrivateKeyFactory;
-import org.spongycastle.crypto.params.AsymmetricKeyParameter;
-import org.spongycastle.crypto.engines.RSAEngine;
-import org.spongycastle.crypto.AsymmetricBlockCipher;
-import org.spongycastle.openpgp.PGPObjectFactory;
-import org.spongycastle.openpgp.PGPEncryptedDataList;
-import org.spongycastle.openpgp.PGPPublicKeyEncryptedData;
-import org.spongycastle.openpgp.PGPSecretKeyRingCollection;
-import org.spongycastle.openpgp.PGPLiteralData;
-import org.spongycastle.openpgp.PGPOnePassSignatureList;
-import org.spongycastle.openpgp.operator.jcajce.JcaKeyFingerprintCalculator;
 
 public class RNOpenPGPModule extends ReactContextBaseJavaModule {
 
@@ -94,10 +74,6 @@ public class RNOpenPGPModule extends ReactContextBaseJavaModule {
     success.invoke(null, string);
   }
 
-  static {
-    Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
-  }
-
   @ReactMethod
   public void generateKeyPair(String userId, int numBits, String passphrase, Promise promise) {
     try {
@@ -112,6 +88,9 @@ public class RNOpenPGPModule extends ReactContextBaseJavaModule {
         publicKeyRing.encode(armoredPubOutputStream);
         armoredPubOutputStream.close();
         resultMap.putString("publicKey", publicKeyOutputStream.toString("UTF-8"));
+
+        // String publicKeyString = publicKeyOutputStream.toString("UTF-8");
+        // encrypt("some plain text", publicKeyString);
 
         // private key
         PGPSecretKeyRing secretKeyRing               = keyGenerator.generateSecretKeyRing();
@@ -129,34 +108,54 @@ public class RNOpenPGPModule extends ReactContextBaseJavaModule {
     }
   }
 
-  private String encrypt(String message, String armoredPublicKey) throws Exception {
-    WritableMap resultMap = Arguments.createMap();
 
-    PGPPublicKey key = readArmoredPublicKey(armoredPublicKey);
-    byte[] bytes = compressString(message, CompressionAlgorithmTags.ZLIB);
+//   public void encrypt(String data, String armoredPublicKey) throws Exception {
+//       // Provider[] prov = Security.getProviders();
+//       // for(int i = 0; i < prov.length; i++) {
+//       //   System.out.println(prov[i].getName());
+//       // }
+//       byte[] dataByteArray = data.getBytes(Charset.forName("UTF-8"));
+//       PGPPublicKey key = readArmoredPublicKey(armoredPublicKey);
 
-    PGPEncryptedDataGenerator encryptedDataGenerator = new PGPEncryptedDataGenerator(
-      new JcePGPDataEncryptorBuilder(
-        PGPEncryptedData.AES_256
-      )
-      .setWithIntegrityPacket(true)
-      .setSecureRandom(new SecureRandom())
-      .setProvider("SC")
-    );
+//       ByteArrayOutputStream compressedDataStream = new ByteArrayOutputStream();
+//       PGPCompressedDataGenerator compressedDataGenerator = new PGPCompressedDataGenerator(
+//         PGPCompressedDataGenerator.ZIP
+//       );
 
-    encryptedDataGenerator.addMethod(new JcePublicKeyKeyEncryptionMethodGenerator(key).setProvider("SC"));
+//       OutputStream outStream = compressedDataGenerator.open(compressedDataStream);
+//       outStream.write(dataByteArray);
+//       compressedDataGenerator.close();
+//       outStream.close();
 
-    ByteArrayOutputStream outputStream      = new ByteArrayOutputStream();
-    ArmoredOutputStream armoredOutputStream = new ArmoredOutputStream(outputStream);
+//       PGPEncryptedDataGenerator encryptedDataGenerator = new PGPEncryptedDataGenerator(
+//         PGPEncryptedDataGenerator.AES_256,
+//         new SecureRandom(),
+//         "BC"
+//       );
 
-    OutputStream writeInMe = encryptedDataGenerator.open(armoredOutputStream, bytes.length);
+//       encryptedDataGenerator.addMethod(key);
 
-    writeInMe.write(bytes);
-    writeInMe.close();
-    armoredOutputStream.close();
+//       byte[] compressedData = compressedDataStream.toByteArray();
+//       ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+//       ArmoredOutputStream armoredOutputStream  = new ArmoredOutputStream(outputStream);
+// System.out.println("VM_006");
+//       OutputStream outDataStream = encryptedDataGenerator.open(armoredOutputStream, compressedData.length);
+// System.out.println("VM_007");
+//       outDataStream.write(compressedData);
+//       encryptedDataGenerator.close();
+//       armoredOutputStream.close();
+//       String result = outputStream.toString("UTF-8");
+//       System.out.println("FINDME_001");
+//       System.out.println(result);
+//   }
 
-    resultMap.putString("encryptedData", outputStream.toString("UTF-8"));
-    return outputStream.toString("UTF-8");
+  @ReactMethod
+  public void decrypt(String armoredEncryptedData, String armoredPrivateKey, Promise promise) {
+    try {
+      
+    } catch (Exception e) {
+      promise.reject(e.getMessage());
+    }
   }
 
   private final static PGPKeyRingGenerator generateKeyRingGenerator(String userId, int numBits, char[] passphrase)
@@ -239,61 +238,27 @@ public class RNOpenPGPModule extends ReactContextBaseJavaModule {
     return keyRingGen;
   }
 
-  private static PGPPublicKey readArmoredPublicKey(String in) throws Exception {
-    byte[] byteArrayPublicKeyString = in.getBytes(Charset.forName("UTF-8"));
-    ByteArrayInputStream publicKeyInputStream = new ByteArrayInputStream(byteArrayPublicKeyString);
-    ArmoredInputStream armoredPubInputStream = new ArmoredInputStream(publicKeyInputStream);
+//   private static PGPPublicKey readArmoredPublicKey(String in)
+//                      throws Exception {
+//               byte[] byteArrayPublicKeyString = in.getBytes(Charset.forName("UTF-8"));
+//               ByteArrayInputStream publicKeyInputStream = new ByteArrayInputStream(byteArrayPublicKeyString);
+//               ArmoredInputStream armoredPubInputStream = new ArmoredInputStream(publicKeyInputStream);
 
-    PGPPublicKeyRing pkRing = null;
-    PGPPublicKeyRingCollection pkCol = new PGPPublicKeyRingCollection(armoredPubInputStream);
-    System.out.println("key ring size=" + pkCol.size());
-    Iterator it = pkCol.getKeyRings();
-    while (it.hasNext()) {
-      pkRing = (PGPPublicKeyRing) it.next();
-      Iterator pkIt = pkRing.getPublicKeys();
-      while (pkIt.hasNext()) {
-              PGPPublicKey key = (PGPPublicKey) pkIt.next();
-              if (key.isEncryptionKey()) return key;
-      }
-    }
-    return null;
-  }
-
-  private static PGPSecretKey getSecretKeyFromArmoredString(String privateKeyIn) throws Exception {
-    byte[] byteArrayPrivateKeyString = privateKeyIn.getBytes(Charset.forName("UTF-8"));
-    ByteArrayInputStream privateKeyInputStream = new ByteArrayInputStream(byteArrayPrivateKeyString);
-    PGPSecretKeyRingCollection secretKeyRingCollection = new PGPSecretKeyRingCollection(
-      PGPUtil.getDecoderStream(privateKeyInputStream)
-    );
-
-    Iterator<PGPSecretKeyRing> iter = secretKeyRingCollection.getKeyRings();
-
-    while (iter.hasNext()) {
-      PGPSecretKeyRing keyRing = iter.next();
-      
-      Iterator<PGPSecretKey> secKeyIter = keyRing.getSecretKeys();
-      while(secKeyIter.hasNext()) {
-        PGPSecretKey tmpSecKey = secKeyIter.next();
-        if (tmpSecKey.isMasterKey()) return tmpSecKey;
-      }
-    }
-
-    return null;
-  }
-
-  private static byte[] compressString(String data, int algorithm) throws Exception {
-      byte[] dataByteArray = data.getBytes(Charset.forName("UTF-8"));
-
-      ByteArrayOutputStream resultOutStream              = new ByteArrayOutputStream(); 
-      PGPCompressedDataGenerator compressedDataGenerator = new PGPCompressedDataGenerator(algorithm);
-
-      OutputStream outStream = compressedDataGenerator.open(resultOutStream);
-      outStream.write(dataByteArray);
-      compressedDataGenerator.close(); 
-      
-      byte[] result = resultOutStream.toByteArray();
-      resultOutStream.close();
-
-      return result;
-  }
+//               PGPPublicKeyRing pkRing = null;
+//               PGPPublicKeyRingCollection pkCol = new PGPPublicKeyRingCollection(armoredPubInputStream);
+//               System.out.println("key ring size=" + pkCol.size());
+//               Iterator it = pkCol.getKeyRings();
+//               while (it.hasNext()) {
+//                       pkRing = (PGPPublicKeyRing) it.next();
+//                       Iterator pkIt = pkRing.getPublicKeys();
+//                       while (pkIt.hasNext()) {
+//                               PGPPublicKey key = (PGPPublicKey) pkIt.next();
+//                               System.out.println("Encryption key = " + key.isEncryptionKey() + ", Master key = " + 
+//                                                  key.isMasterKey());
+//                               if (key.isEncryptionKey())
+//                                       return key;
+//                       }
+//               }
+//               return null;
+//       }
 }
